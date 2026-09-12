@@ -54,7 +54,18 @@ echo "$NEEV_API_TOKEN" | neev-cli auth login --token-stdin
 
 Or skip login entirely and set `NEEV_API_TOKEN` for a single invocation.
 
-**If you are an agent: do not run `auth login` on the user's behalf.** Stop and ask them to run it themselves, then continue once `auth status` succeeds.
+### Signing In Is Optional
+
+`NEEV_API_TOKEN` takes precedence over any stored session and authenticates a command on its own, with no session and nothing written to disk. **Check the environment before asking the user for anything.**
+
+```bash
+export NEEV_API_TOKEN="pat-nc-..."
+neev-cli sandbox list --org-id <org-id> --project-id <project-id>
+```
+
+Without a session there is no current context, so pass `--org-id` and `--project-id` explicitly on every command. This is the path for CI, containers, and anywhere without an interactive terminal — including a sandbox, where there is no TTY for the hidden prompt.
+
+**If you are an agent:** use `NEEV_API_TOKEN` when it is already set. Only when no credential is present should you stop and ask the user to either export it or run `auth login` themselves. Never run `auth login` on their behalf, and never build a command that carries the token.
 
 ## Choose an Organization and Project
 
@@ -66,6 +77,8 @@ neev-cli context set dev <org-id> <project-id>     # save and make current
 neev-cli context current
 neev-cli context use <name>
 ```
+
+Contexts need a stored session. On the `NEEV_API_TOKEN` path there is no context to save, so discover the values with `neev-cli org list` and `neev-cli project list` and pass them as flags instead.
 
 An explicit `--org-id` / `--project-id` always overrides the current context. Never guess these values — list them and ask.
 
@@ -111,11 +124,16 @@ export NEEV_API_KEY="sk-nc-..."
 
 Paths are relative to the workspace. **Absolute paths are rejected with a 400** — the workspace is confined. Use `src/app.py`, never `/workspace/src/app.py`.
 
+Paths are passed with `--path`, never as a positional argument.
+
 ```bash
-neev-cli sandbox fs write --sandbox-id <id> src/app.py --from-file ./app.py
-neev-cli sandbox fs read  --sandbox-id <id> src/app.py
-neev-cli sandbox fs list  --sandbox-id <id> src
+neev-cli sandbox fs write --sandbox-id <id> --path src/app.py --in ./app.py
+neev-cli sandbox fs read  --sandbox-id <id> --path src/app.py            # to stdout
+neev-cli sandbox fs read  --sandbox-id <id> --path src/app.py --out ./app.py
+neev-cli sandbox fs list  --sandbox-id <id> --path src --recursive
 ```
+
+`--in -` reads the file content from stdin. `--cwd` sets a base directory relative to the workspace root.
 
 ### Commands
 
@@ -142,6 +160,14 @@ neev-cli sandbox process kill  --sandbox-id <id> --process-id <pid>
 neev-cli sandbox process kill-all --sandbox-id <id>
 ```
 
+`start` returns the id under the key `process_id`, not `id`:
+
+```json
+{ "process_id": "proc_a814e6151be66db8a963fdaa68bc3ebc", "started_at": 1789200702035, "state": "running" }
+```
+
+`start` also takes `--cwd`, repeatable `--env KEY=VALUE`, and `--stdin`. `kill` takes `--signal` (SIGTERM by default; `--signal 9` for SIGKILL).
+
 `logs` supports `-f` to follow, `--tail N`, and `-o json`. `get --wait` blocks until the process exits.
 
 ## What the CLI Cannot Do
@@ -153,7 +179,8 @@ neev-cli sandbox process kill-all --sandbox-id <id>
 | Symptom | Cause |
 |---|---|
 | `--api-key is required` on `exec`, `fs`, or `process` | Set `NEEV_API_KEY`. This is the sandbox key, not the PAT |
-| `org list` or `context list` fails, sandboxes work | Not signed in. Run `neev-cli auth login` |
+| `org list` or `context list` returns `401 {"code":"unauthorized","message":"missing authorization header"}` while sandboxes work | No PAT. The API key is not sent to the tenant service at all, so the error says "missing" even though a credential is set. Set `NEEV_API_TOKEN` or run `neev-cli auth login` |
+| No TTY for the login prompt (CI, container, sandbox) | Do not use `auth login`. Set `NEEV_API_TOKEN` and pass `--org-id` / `--project-id` |
 | Commands hang inside a sandbox, installs time out | Egress is deny-all by default. See the `neev-sdk` skill |
-| A file write returns 400 | An absolute path. Use a path relative to the workspace |
+| `invalid_argument: path must be relative, got absolute: "..."` | An absolute path in a file operation. Use a path relative to the workspace |
 | Commands fail right after create | The sandbox is still `Pending`. Wait for `Ready` |
