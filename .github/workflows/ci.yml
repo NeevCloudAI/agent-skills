@@ -1,0 +1,41 @@
+# Skills CI — mirrors the conventions in the SDK and backend workflows:
+#   - GitHub-hosted ubuntu-latest runner
+#   - actions/checkout@v4
+#   - runs on every PR to main + every push to main, plus manual dispatch
+#   - concurrency group per ref with cancel-in-progress
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate skills and manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Frontmatter, manifest JSON, and version consistency
+        run: python3 scripts/validate.py
+      # The install path users are told to run. If the registry CLI cannot discover
+      # both skills here, `skills add` will not find them either.
+      - name: Skills are discoverable by the registry CLI
+        run: |
+          set -euo pipefail
+          npx -y skills list . | tee /tmp/skills.txt
+          for skill in neev-cli neev-sdk; do
+            grep -q "$skill" /tmp/skills.txt || { echo "registry CLI did not list $skill"; exit 1; }
+          done
