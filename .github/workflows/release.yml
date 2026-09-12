@@ -1,0 +1,43 @@
+# Skills release — deliberately manual. Nothing publishes on a push to main.
+# Mirrors the SDK's tag-driven convention (on: push tags 'v*') plus a manual
+# workflow_dispatch. A release only happens when someone pushes a version tag,
+# and the tag has to match the version declared in the manifests.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # required to create the GitHub release
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish a GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Same checks as CI, plus the tag-matches-version assertion. A tag that
+      # disagrees with the manifests fails here rather than shipping.
+      - name: Validate, and that the tag matches the declared version
+        run: python3 scripts/validate.py "${GITHUB_REF_NAME}"
+      - name: Skills are discoverable by the registry CLI
+        run: |
+          set -euo pipefail
+          npx -y skills list . | tee /tmp/skills.txt
+          for skill in neev-cli neev-sdk; do
+            grep -q "$skill" /tmp/skills.txt || { echo "registry CLI did not list $skill"; exit 1; }
+          done
+      - name: Create the release
+        run: gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-from-tag --verify-tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

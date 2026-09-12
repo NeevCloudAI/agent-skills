@@ -57,6 +57,10 @@ Full documentation lives at https://docs.ai.neevcloud.com.
 
 These skills are generated against the real CLI and SDK surface. If one has drifted from the product, open an issue.
 
+## Contributing
+
+Every command and method in these skills is taken from the shipped CLI and SDKs rather than written from memory, and CI checks that the skills parse and that the registry CLI can discover them. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to make a change or cut a release.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
