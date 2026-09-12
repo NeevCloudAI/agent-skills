@@ -12,17 +12,18 @@ metadata:
 
 ## Install
 
-macOS and Linux:
+Follow the method documented for the user's operating system at
+https://docs.ai.neevcloud.com/getting-started/neev-cli.md
+
+macOS and Linux have a one-line installer there. **Windows has no install script** — hand
+the user the manual download-and-PATH steps from that page rather than inventing a
+command. Do not guess at a package manager: Homebrew is not currently available.
+
+Verify with:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NeevCloudAI/neev-cli/main/install.sh | sh
+neev-cli version
 ```
-
-The script detects the OS and architecture, verifies the release checksum, and installs to `/usr/local/bin`, or `~/.local/bin` if that is not writable. Pin a version with `NEEV_CLI_VERSION=v0.8.1`, or change the destination with `NEEV_CLI_INSTALL_DIR`.
-
-On Windows there is no install script. Download `neev-cli_windows_amd64.zip` (or `arm64`) from https://github.com/NeevCloudAI/neev-cli/releases/latest, extract it, and add the folder to `PATH`. Do not invent a one-line installer.
-
-Verify with `neev-cli version`.
 
 ## Two Credentials
 
