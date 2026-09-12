@@ -124,11 +124,16 @@ export NEEV_API_KEY="sk-nc-..."
 
 Paths are relative to the workspace. **Absolute paths are rejected with a 400** — the workspace is confined. Use `src/app.py`, never `/workspace/src/app.py`.
 
+Paths are passed with `--path`, never as a positional argument.
+
 ```bash
-neev-cli sandbox fs write --sandbox-id <id> src/app.py --from-file ./app.py
-neev-cli sandbox fs read  --sandbox-id <id> src/app.py
-neev-cli sandbox fs list  --sandbox-id <id> src
+neev-cli sandbox fs write --sandbox-id <id> --path src/app.py --in ./app.py
+neev-cli sandbox fs read  --sandbox-id <id> --path src/app.py            # to stdout
+neev-cli sandbox fs read  --sandbox-id <id> --path src/app.py --out ./app.py
+neev-cli sandbox fs list  --sandbox-id <id> --path src --recursive
 ```
+
+`--in -` reads the file content from stdin. `--cwd` sets a base directory relative to the workspace root.
 
 ### Commands
 
@@ -155,6 +160,14 @@ neev-cli sandbox process kill  --sandbox-id <id> --process-id <pid>
 neev-cli sandbox process kill-all --sandbox-id <id>
 ```
 
+`start` returns the id under the key `process_id`, not `id`:
+
+```json
+{ "process_id": "proc_a814e6151be66db8a963fdaa68bc3ebc", "started_at": 1789200702035, "state": "running" }
+```
+
+`start` also takes `--cwd`, repeatable `--env KEY=VALUE`, and `--stdin`. `kill` takes `--signal` (SIGTERM by default; `--signal 9` for SIGKILL).
+
 `logs` supports `-f` to follow, `--tail N`, and `-o json`. `get --wait` blocks until the process exits.
 
 ## What the CLI Cannot Do
@@ -169,5 +182,5 @@ neev-cli sandbox process kill-all --sandbox-id <id>
 | `org list` or `context list` returns `401 {"code":"unauthorized","message":"missing authorization header"}` while sandboxes work | No PAT. The API key is not sent to the tenant service at all, so the error says "missing" even though a credential is set. Set `NEEV_API_TOKEN` or run `neev-cli auth login` |
 | No TTY for the login prompt (CI, container, sandbox) | Do not use `auth login`. Set `NEEV_API_TOKEN` and pass `--org-id` / `--project-id` |
 | Commands hang inside a sandbox, installs time out | Egress is deny-all by default. See the `neev-sdk` skill |
-| A file write returns 400 | An absolute path. Use a path relative to the workspace |
+| `invalid_argument: path must be relative, got absolute: "..."` | An absolute path in a file operation. Use a path relative to the workspace |
 | Commands fail right after create | The sandbox is still `Pending`. Wait for `Ready` |
