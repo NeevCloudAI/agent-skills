@@ -1,0 +1,19 @@
+{
+  "name": "neevcloud",
+  "owner": {
+    "name": "NeevCloud",
+    "email": "support@neevcloud.com"
+  },
+  "plugins": [
+    {
+      "name": "neev-sdk",
+      "description": "The NeevCloud SDK skill lets your agent create sandboxes from TypeScript or Python, write files, run commands and long-running processes, expose a port to get a public preview URL, and control what the sandbox can reach on the network.",
+      "source": "./skills/neev-sdk"
+    },
+    {
+      "name": "neev-cli",
+      "description": "The NeevCloud CLI skill lets your agent install and sign in to neev-cli, choose an organization and project, manage the sandbox lifecycle, and run files, commands, and processes inside a sandbox from a shell or CI.",
+      "source": "./skills/neev-cli"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "neevcloud",
+  "plugins": [
+    {
+      "name": "neevcloud",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "category": "Development"
+    }
+  ]
+}

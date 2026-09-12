@@ -16,6 +16,16 @@ npx -y skills list -g --json
 
 Re-run the add command to update to the latest version.
 
+### As a plugin
+
+If your agent supports plugin marketplaces, you can install these skills without `npx`:
+
+```
+/plugin marketplace add NeevCloudAI/agent-skills
+```
+
+Manifests are provided for Claude Code, Codex, and Cursor, plus a generic one for agents that read `.agents/plugins`. Both install paths deliver the same two skills.
+
 ## Skills
 
 | Skill | Use it for |
