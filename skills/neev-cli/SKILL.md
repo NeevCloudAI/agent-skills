@@ -166,7 +166,7 @@ neev-cli sandbox process kill-all --sandbox-id <id>
 | Symptom | Cause |
 |---|---|
 | `--api-key is required` on `exec`, `fs`, or `process` | Set `NEEV_API_KEY`. This is the sandbox key, not the PAT |
-| `org list` or `context list` fails, sandboxes work | No PAT. Set `NEEV_API_TOKEN` or run `neev-cli auth login` |
+| `org list` or `context list` returns `401 {"code":"unauthorized","message":"missing authorization header"}` while sandboxes work | No PAT. The API key is not sent to the tenant service at all, so the error says "missing" even though a credential is set. Set `NEEV_API_TOKEN` or run `neev-cli auth login` |
 | No TTY for the login prompt (CI, container, sandbox) | Do not use `auth login`. Set `NEEV_API_TOKEN` and pass `--org-id` / `--project-id` |
 | Commands hang inside a sandbox, installs time out | Egress is deny-all by default. See the `neev-sdk` skill |
 | A file write returns 400 | An absolute path. Use a path relative to the workspace |
