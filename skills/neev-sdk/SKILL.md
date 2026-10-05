@@ -8,16 +8,16 @@ metadata:
 
 # neev-sdk
 
-Official NeevCloud SDKs: `@neevcloud/sdk` for TypeScript and JavaScript, `neevai` for Python. This skill matches version 0.8.1 of both. They expose the same surface, in camelCase and snake_case respectively.
+Official NeevCloud SDKs: `@neevcloud/sdk` for TypeScript and JavaScript, `neevai` for Python. This skill matches version 0.8.2 of both, and the examples need 0.8.2 or later. They expose the same surface, in camelCase and snake_case respectively.
 
 ## Install
 
 ```bash
-npm install @neevcloud/sdk
+npm install @neevcloud/sdk@^0.8.2
 ```
 
 ```bash
-pip install neevai
+pip install "neevai>=0.8.2,<0.9"
 ```
 
 Do not install `@neevcloud/sdk@beta`: that tag points at an older pre-release.
@@ -70,14 +70,14 @@ Paths are relative to the workspace. **Absolute paths are rejected** — the wor
 
 ```typescript
 await sandbox.files.write("greeting.txt", "hello\n");
-const text = await sandbox.files.readText("src/main.py");
-const entries = await sandbox.files.list("src", { recursive: false });
+const text = await sandbox.files.readText("greeting.txt");
+const entries = await sandbox.files.list(".", { recursive: false });
 ```
 
 ```python
 sandbox.files.write("greeting.txt", "hello\n")
-text = sandbox.files.read_text("src/main.py")
-entries = sandbox.files.list("src", recursive=False)
+text = sandbox.files.read_text("greeting.txt")
+entries = sandbox.files.list(".", recursive=False)
 ```
 
 `files.write` switches to a resumable chunked upload above 1 MiB, so large writes work. To move a local file without holding it in memory, use `files.uploadFile(localPath, remotePath)` / `files.downloadFile(remotePath, localPath)` (Node only in JS), or `files.upload_file` / `files.download_file` in Python. A failed download leaves no partial file.
@@ -195,10 +195,12 @@ sandbox = neev.sandboxes.create({
 Change it on a running sandbox with `update`, which applies live with no restart. `egress` **replaces** the whole policy. `egress_add` and `egress_remove` edit the allow-list in place: they cannot be combined with `egress`, and `egress_add` is rejected while the mode is `deny_all`, so switch to `allow_list` with `egress` first.
 
 ```typescript
+// on a sandbox already in allow_list mode
 await sandbox.update({ egress_add: { allow: [{ host: "pypi.org", ports: [443] }] } });
 ```
 
 ```python
+# on a sandbox already in allow_list mode
 sandbox.update({"egress_add": {"allow": [{"host": "pypi.org", "ports": [443]}]}})
 ```
 
@@ -217,8 +219,13 @@ const copy = await sandbox.fork("attempt-b");   // a second sandbox from the liv
 ```
 
 ```python
+import time
+
 snap = sandbox.snapshot({"name": "before-migration"})
-# wait until neev.sandboxes.get_snapshot(snap.id).status == "Ready" before rolling back
+while (status := neev.sandboxes.get_snapshot(snap.id).status) in ("Pending", "Running"):
+    time.sleep(2)
+if status != "Ready":
+    raise RuntimeError(f"snapshot ended {status.value}")
 sandbox.rollback(snap.id)
 copy = sandbox.fork("attempt-b")
 ```
@@ -238,7 +245,7 @@ const older = trail.next_cursor ? await sandbox.audit({ cursor: trail.next_curso
 ```python
 trail = sandbox.audit(limit=50)
 for r in trail.records:
-    print(r.at, r.tool, r.command, r.outcome)
+    print(r.at, r.tool, r.command, r.outcome.value)
 older = sandbox.audit(cursor=trail.next_cursor) if trail.next_cursor else None
 ```
 
