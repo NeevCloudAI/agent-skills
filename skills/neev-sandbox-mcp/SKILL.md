@@ -1,6 +1,6 @@
 ---
 name: neev-sandbox-mcp
-description: Connect a coding agent — Claude Code, Cursor, Codex, or any MCP client — to the NeevCloud sandbox MCP server so it gets a sandbox as native tools, without the API key ever passing through chat, then work in that sandbox safely. Use when asked to set up, configure, or troubleshoot the sandbox MCP server, or when working in a NeevCloud sandbox over MCP.
+description: Connect an agent — Claude Code, Cursor, Codex, Claude Desktop, or any MCP client — to the NeevCloud sandbox MCP server so it gets a sandbox as native tools, without the API key ever passing through chat, then work in that sandbox safely. Use when asked to set up, configure, or troubleshoot the sandbox MCP server, or when working in a NeevCloud sandbox over MCP.
 metadata:
   author: neevcloud
   version: "1.0.0"
@@ -28,6 +28,8 @@ A sandbox name is lowercase letters, digits and hyphens, starts with a letter, e
 ## Keep the Key Out of Chat and Out of Files
 
 Never ask the user to paste the API key into chat, and never write its value into a config file. Every supported agent reads it from an environment variable, so the config only ever holds a reference.
+
+For Claude Desktop, skip to its section below: it does not read the shell environment, so the key goes in a headers file instead.
 
 1. Check that `NEEV_API_KEY` is set and non-empty without printing it, for example `test -n "$NEEV_API_KEY" && echo set`.
 2. If it is not set, stop. Ask the user to create a project API key in the NeevCloud console and export `NEEV_API_KEY` in their shell profile, then restart the agent so it inherits the variable. A `.env` file is not enough: these agents read the environment they were launched from.
@@ -78,6 +80,36 @@ url = "https://mcp.sandboxes.as-south-1.ai.neevcloud.com/mcp"
 bearer_token_env_var = "NEEV_API_KEY"
 http_headers = { "x-sandbox-name" = "my-agent" }
 ```
+
+**Claude Desktop** — its config file only starts local stdio servers, so bridge to the HTTP server with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote), which needs Node.js. Desktop does not inherit the shell environment, so the key cannot come from `NEEV_API_KEY`. Keep it in a headers file instead, out of the config and out of the process list.
+
+1. Create `~/.neevcloud/sandbox-mcp.headers` with a placeholder, and make it readable only by the user (`chmod 600` on macOS and Linux):
+
+   ```
+   Authorization: Bearer <paste your sk-nc- key here>
+   x-sandbox-name: my-agent
+   ```
+
+2. Ask the user to open the file in an editor and replace the placeholder with their key. Never write the key yourself.
+3. Add the server to `claude_desktop_config.json` (`~/Library/Application Support/Claude/` on macOS, `%APPDATA%\Claude\` on Windows), merged into any existing `mcpServers`. The path must be absolute, because `~` is not expanded:
+
+   ```json
+   {
+     "mcpServers": {
+       "neev-sandbox": {
+         "command": "npx",
+         "args": [
+           "-y", "mcp-remote@latest",
+           "https://mcp.sandboxes.as-south-1.ai.neevcloud.com/mcp",
+           "--transport", "http-only",
+           "--header-file", "/Users/me/.neevcloud/sandbox-mcp.headers"
+         ]
+       }
+     }
+   }
+   ```
+
+4. Ask the user to quit Claude Desktop completely and reopen it. Closing the window is not enough.
 
 **Any other MCP client** — point it at the URL with the two headers above, and use its own environment-variable reference for the key. If it has none, tell the user the config will hold the key in plain text and let them write that value in themselves.
 
