@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `neev-sdk` — updated for SDK 0.8.1. Install without `@beta`, which points at an older pre-release. Streaming `exec` examples now iterate the stream, because an un-iterated stream never runs the command. Egress changes use `update()` with `egress_add` / `egress_remove` instead of raw HTTP. Adds snapshots, rollback and fork, the audit trail, preview slugs, large-file upload, keepalive and timeouts, and error codes. Corrects two claims: `allow_internet` is not audit-logged, and processes survive a pause.
 - `neev-sandbox-mcp` — connecting an agent to the sandbox MCP server. Writes the Claude Code, Cursor, or Codex config with the API key read from the environment, verifies the connection, and covers creating on first use, phases, and the actions to ask about first.
 
 ## 1.0.0
