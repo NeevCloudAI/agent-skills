@@ -24,7 +24,7 @@ If your agent supports plugin marketplaces, you can install these skills without
 /plugin marketplace add NeevCloudAI/agent-skills
 ```
 
-Manifests are provided for Claude Code, Codex, and Cursor, plus a generic one for agents that read `.agents/plugins`. Both install paths deliver the same two skills.
+Manifests are provided for Claude Code, Codex, and Cursor, plus a generic one for agents that read `.agents/plugins`. Both install paths deliver the same skills.
 
 ## Skills
 
@@ -32,6 +32,7 @@ Manifests are provided for Claude Code, Codex, and Cursor, plus a generic one fo
 |---|---|
 | `neev-cli` | Installing and signing in, choosing an organization and project, sandbox lifecycle, and running files, commands, and processes from a shell or CI |
 | `neev-sdk` | Building against NeevCloud from TypeScript or Python — sandboxes, files, commands, processes, preview URLs, and network egress |
+| `neev-sandbox-mcp` | Connecting Claude Code, Cursor, Codex, or any MCP client to a sandbox over MCP, with the API key kept out of chat and config files, and working in it through native tools |
 
 ## Getting Started
 

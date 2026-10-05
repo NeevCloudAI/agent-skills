@@ -14,6 +14,11 @@
       "name": "neev-cli",
       "description": "The NeevCloud CLI skill lets your agent install and sign in to neev-cli, choose an organization and project, manage the sandbox lifecycle, and run files, commands, and processes inside a sandbox from a shell or CI.",
       "source": "./skills/neev-cli"
+    },
+    {
+      "name": "neev-sandbox-mcp",
+      "description": "The NeevCloud sandbox MCP skill configures your agent to reach a sandbox over MCP with the API key kept in the environment, then works in that sandbox through native tools: commands, files, processes, snapshots, and rollback.",
+      "source": "./skills/neev-sandbox-mcp"
     }
   ]
 }
