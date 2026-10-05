@@ -1,7 +1,7 @@
 {
   "name": "neevcloud",
   "version": "1.0.0",
-  "description": "NeevCloud agent skills for building on sandboxes. Includes the neev-sdk skill for creating sandboxes, running code, and generating preview URLs from TypeScript or Python, and the neev-cli skill for managing sandboxes from the command line.",
+  "description": "NeevCloud agent skills for building on sandboxes. Includes the neev-sdk skill for creating sandboxes, running code, and generating preview URLs from TypeScript or Python, the neev-cli skill for managing sandboxes from the command line, and the neev-sandbox-mcp skill for connecting an agent to a sandbox over MCP.",
   "author": {
     "name": "NeevCloud",
     "email": "support@neevcloud.com",

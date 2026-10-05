@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `neev-sandbox-mcp` — connecting an agent to the sandbox MCP server. Writes the Claude Code, Cursor, or Codex config with the API key read from the environment, verifies the connection, and covers creating on first use, phases, and the actions to ask about first.
+
 ## 1.0.0
 
 Initial release.
