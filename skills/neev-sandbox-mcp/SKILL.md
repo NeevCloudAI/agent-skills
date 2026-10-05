@@ -8,7 +8,7 @@ metadata:
 
 # neev-sandbox-mcp
 
-The sandbox MCP server gives an agent one NeevCloud sandbox as native tools: run commands, read and write files, manage processes, snapshot and roll back, pause and resume. It needs one URL and a project API key. There is no CLI to install and no sign-in.
+The sandbox MCP server gives an agent one NeevCloud sandbox as native tools: run commands, read and write files, manage processes, snapshot and roll back, pause and resume. It needs one URL and a project API key, and nothing else: no CLI, no SDK, no Personal Access Token and no sign-in. Do not install or ask for any of them to set this up.
 
 Full reference: https://docs.ai.neevcloud.com/agentic-studio/overview/sandbox-mcp-server.md
 
@@ -21,7 +21,7 @@ Full reference: https://docs.ai.neevcloud.com/agentic-studio/overview/sandbox-mc
 | `Authorization` | `Bearer sk-nc-…`, a **project API key**. `x-api-key: sk-nc-…` also works |
 | `x-sandbox-name` | Which sandbox this connection works in. Omitted, it is `default` |
 
-The API key is not the Personal Access Token (`pat-nc-…`). A PAT is for the separate account MCP server and does not work here.
+Only the API key is used. A Personal Access Token (`pat-nc-…`) is for the separate account MCP server, does not work here, and is never needed for this setup.
 
 A sandbox name is lowercase letters, digits and hyphens, starts with a letter, ends with a letter or digit, and is at most 63 characters. One URL serves every sandbox; changing sandboxes means changing the header, not the URL.
 
