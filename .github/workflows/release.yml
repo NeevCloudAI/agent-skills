@@ -1,5 +1,5 @@
 # Skills release — deliberately manual. Nothing publishes on a push to main.
-# Mirrors the SDK's tag-driven convention (on: push tags 'v*') plus a manual
+# Tag-driven (on: push tags 'v*') plus a manual
 # workflow_dispatch. A release only happens when someone pushes a version tag,
 # and the tag has to match the version declared in the manifests.
 name: Release
@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           npx -y skills list . | tee /tmp/skills.txt
-          for skill in neev-cli neev-sdk; do
+          for skill in neev-cli neev-sdk neev-sandbox-mcp; do
             grep -q "$skill" /tmp/skills.txt || { echo "registry CLI did not list $skill"; exit 1; }
           done
       - name: Create the release

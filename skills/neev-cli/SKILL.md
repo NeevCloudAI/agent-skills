@@ -1,14 +1,16 @@
 ---
 name: neev-cli
-description: Manage NeevCloud sandboxes from the command line with neev-cli — install and sign in, pick an organization and project, create and pause sandboxes, and run files, commands, and processes inside them. Use when setting up NeevCloud, troubleshooting authorization errors, or driving sandboxes from a shell or CI.
+description: Manage NeevCloud sandboxes from the command line with neev-cli — install and sign in, pick an organization and project, create, pause, snapshot and roll back sandboxes, control their network egress, and run files, commands, and processes inside them. Use when setting up NeevCloud, troubleshooting authorization errors, or driving sandboxes from a shell or CI.
 metadata:
   author: neevcloud
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # neev-cli
 
 `neev-cli` is the command-line interface for NeevCloud. Use it to sign in, choose the organization and project you are working in, and manage sandboxes end to end.
+
+This skill is written for neev-cli 0.8.x. Check with `neev-cli version`, and when a flag here is rejected, trust `neev-cli <command> --help` over this file.
 
 ## Install
 
@@ -82,39 +84,73 @@ Contexts need a stored session. On the `NEEV_API_TOKEN` path there is no context
 
 An explicit `--org-id` / `--project-id` always overrides the current context. Never guess these values — list them and ask.
 
+## Output
+
+Every command takes `-o table|wide|json|yaml|name` (default `table`) and `--no-headers`. Parse `-o json` in scripts; never scrape the table.
+
 ## Sandbox Lifecycle
 
 ```bash
-neev-cli sandbox create
+neev-cli sandbox create --name web --template-id sb-debian-12-minimal --cpu 1 --memory-gb 2 --disk-gb 10
+neev-cli sandbox create --from-file ./sandbox.json    # full request body; - reads stdin
 neev-cli sandbox list
 neev-cli sandbox get <id>
 neev-cli sandbox pause <id>       # stops compute billing, preserves the disk
 neev-cli sandbox resume <id>
-neev-cli sandbox delete <id>
+neev-cli sandbox delete <id> --yes
 neev-cli sandbox metrics <id>
 
 neev-cli sandbox template list
 neev-cli sandbox template get <template-id>
 ```
 
-Sandboxes provision asynchronously. A new sandbox is `Pending` before it is `Ready`; wait for `Ready` before running anything in it.
+`create` also takes repeatable `--env KEY=VALUE`, `--region`, and `--restore <snapshot-id>` to start from a snapshot instead of a template. Sizes: `--cpu` in steps of 0.5 up to 8, `--memory-gb` 1–16, `--disk-gb` in steps of 10 up to 100.
 
-Address a sandbox by its id, not its name.
+Anything passed with `--env` is readable by every process in the sandbox. Pass only scoped, short-lived keys, never the user's own credentials.
+
+Sandboxes provision asynchronously. A new sandbox is `Pending` before it is `Ready`; there is no wait flag, so poll `neev-cli sandbox get <id> -o json` until `phase` is `Ready` before running anything in it. Stop and report if it turns `RestoreFailed`. After `resume`, `phase` can lag behind; confirm with a trivial `exec` such as `-- true` instead.
+
+Address a sandbox by its id, not its name. Lifecycle, snapshot, `exec`, and `ssh-config` commands take the id positionally or as `--sandbox-id`; `fs` and `process` take only `--sandbox-id`.
+
+`delete` and `rollback` ask for confirmation on stdin. An agent or script has no one to answer it, so pass `--yes` — but only once the user has agreed, because neither can be undone.
+
+Resize a running sandbox in place:
+
+```bash
+neev-cli sandbox update <id> --cpu 2 --memory-gb 4
+```
+
+## Network Egress
+
+Outbound traffic is denied by default. Open it at create time or later:
+
+```bash
+neev-cli sandbox create --name ci --allow github.com --allow registry.npmjs.org
+neev-cli sandbox create --name web --allow-internet
+neev-cli sandbox update <id> --allow pypi.org --allow files.pythonhosted.org
+neev-cli sandbox update <id> --allow-internet
+```
+
+`--allow` takes an FQDN or CIDR and is repeatable. On `update` it **replaces** the whole egress policy rather than adding to it, so repeat every host the sandbox still needs. Widening egress is the user's decision — ask before running `--allow-internet` or adding a host they did not name.
 
 ## Snapshots
 
 ```bash
-neev-cli sandbox snapshot create --sandbox-id <id>
-neev-cli sandbox snapshot list
+neev-cli sandbox snapshot create <id> --name before-migration
+neev-cli sandbox snapshot list <id>
 neev-cli sandbox snapshot get <snapshot-id>
-neev-cli sandbox snapshot delete <snapshot-id>
-neev-cli sandbox restore --sandbox-id <id> --snapshot-id <snap>
-neev-cli sandbox fork --sandbox-id <id>
+neev-cli sandbox snapshot delete <snapshot-id> --yes
+neev-cli sandbox rollback <id> --snapshot-id <snapshot-id>
+neev-cli sandbox fork <id> --name web-try-2
 ```
+
+A snapshot starts `Pending` and may pass through `Running`. Poll `snapshot get <snapshot-id> -o json` until `status` is `Ready` before rolling back or forking from it, and stop if it ends in any other state.
+
+`rollback` overwrites the sandbox in place, running processes included. `fork` leaves the source untouched and creates a second, independent sandbox from its live state. `sandbox restore` is the deprecated name for `rollback`.
 
 ## Work Inside a Sandbox
 
-These need the API key:
+These need the API key, from the environment or `--api-key`:
 
 ```bash
 export NEEV_API_KEY="sk-nc-..."
@@ -140,10 +176,21 @@ neev-cli sandbox fs list  --sandbox-id <id> --path src --recursive
 Use `exec` for anything that finishes on its own.
 
 ```bash
-neev-cli sandbox exec --sandbox-id <id> -- python --version
-neev-cli sandbox exec --sandbox-id <id> --stream -- npm install
-neev-cli sandbox exec --sandbox-id <id> -it -- bash
+neev-cli sandbox exec <id> -- python --version
+neev-cli sandbox exec <id> --cwd app -- npm install
+neev-cli sandbox exec <id> -o json -- python main.py     # {stdout, stderr, exit_code}
+neev-cli sandbox exec <id> -it -- bash
 ```
+
+Output streams to the terminal as the command runs. A non-zero exit code makes `neev-cli` exit non-zero too, so `exec` works in `set -e` scripts and CI.
+
+**No shell is invoked.** The program runs directly with its arguments, so pipes, `&&`, globs, and `$VARS` are not interpreted. Wrap them explicitly:
+
+```bash
+neev-cli sandbox exec <id> -- sh -c 'npm ci && npm test'
+```
+
+`exec` also takes repeatable `--env KEY=VALUE`, `--stdin` (`-` pipes the CLI's own stdin), and `--timeout-ms`. `-it` needs a real terminal; do not use it from an agent or CI.
 
 Unlike the files API, commands accept absolute paths.
 
@@ -170,6 +217,20 @@ neev-cli sandbox process kill-all --sandbox-id <id>
 
 `logs` supports `-f` to follow, `--tail N`, and `-o json`. `get --wait` blocks until the process exits.
 
+### SSH
+
+For tools that expect SSH, such as `rsync`, `scp`, or an editor's remote mode, write a host block once and connect by name:
+
+```bash
+neev-cli sandbox ssh-config <id> --write    # adds a managed Host block to ~/.ssh/config and pins the host key
+ssh <sandbox-name>
+rsync -av ./src <sandbox-name>:/workspace/
+neev-cli sandbox ssh-config --list          # managed blocks; stale ones are flagged with --org-id/--project-id
+neev-cli sandbox ssh-config <id> --remove   # drop the block and its host-key pin
+```
+
+The host alias is the sandbox's name, or its id when it has none; `--write` prints which. It edits the user's own `~/.ssh/config`, so ask before running it. Without `--write`, the block is printed instead.
+
 ## What the CLI Cannot Do
 
 **Exposing a port for a preview URL has no CLI command.** To reach a server running inside a sandbox from a browser, use the SDK — see the `neev-sdk` skill — or call the API directly.
@@ -181,6 +242,10 @@ neev-cli sandbox process kill-all --sandbox-id <id>
 | `--api-key is required` on `exec`, `fs`, or `process` | Set `NEEV_API_KEY`. This is the sandbox key, not the PAT |
 | `org list` or `context list` returns `401 {"code":"unauthorized","message":"missing authorization header"}` while sandboxes work | No PAT. The API key is not sent to the tenant service at all, so the error says "missing" even though a credential is set. Set `NEEV_API_TOKEN` or run `neev-cli auth login` |
 | No TTY for the login prompt (CI, container, sandbox) | Do not use `auth login`. Set `NEEV_API_TOKEN` and pass `--org-id` / `--project-id` |
-| Commands hang inside a sandbox, installs time out | Egress is deny-all by default. See the `neev-sdk` skill |
+| Commands hang inside a sandbox, installs time out | Egress is deny-all by default. Allow the hosts with `sandbox update <id> --allow ...` — see Network Egress |
+| A host that worked stops connecting after `sandbox update --allow` | `--allow` on `update` replaces the policy. Repeat every host the sandbox still needs |
+| `&&`, a pipe, or `$VAR` in `exec` is passed literally or fails | `exec` runs no shell. Use `-- sh -c '...'` |
+| `unknown flag` on a command copied from older docs | Flags differ between CLI versions. Check `neev-cli <command> --help` |
 | `invalid_argument: path must be relative, got absolute: "..."` | An absolute path in a file operation. Use a path relative to the workspace |
-| Commands fail right after create | The sandbox is still `Pending`. Wait for `Ready` |
+| Commands fail right after create | The sandbox is still `Pending`. Poll `sandbox get <id> -o json` until `phase` is `Ready` |
+| `delete` or `rollback` prints `aborted` and exits 0 without doing anything | The confirmation prompt read an empty stdin. Exit 0 does not mean it ran. Pass `--yes` once the user has agreed |

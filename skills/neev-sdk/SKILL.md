@@ -3,7 +3,7 @@ name: neev-sdk
 description: Build on NeevCloud sandboxes from TypeScript or Python with the official SDKs — create sandboxes, write and upload files, run commands and processes, expose a port to get a public preview URL, control outbound network access, snapshot and roll back, and read the audit trail. Use when writing application or agent code against NeevCloud rather than driving it from a shell.
 metadata:
   author: neevcloud
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # neev-sdk

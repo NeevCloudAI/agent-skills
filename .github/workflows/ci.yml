@@ -1,4 +1,4 @@
-# Skills CI — mirrors the conventions in the SDK and backend workflows:
+# Skills CI conventions:
 #   - GitHub-hosted ubuntu-latest runner
 #   - actions/checkout@v4
 #   - runs on every PR to main + every push to main, plus manual dispatch
@@ -36,6 +36,6 @@ jobs:
         run: |
           set -euo pipefail
           npx -y skills list . | tee /tmp/skills.txt
-          for skill in neev-cli neev-sdk; do
+          for skill in neev-cli neev-sdk neev-sandbox-mcp; do
             grep -q "$skill" /tmp/skills.txt || { echo "registry CLI did not list $skill"; exit 1; }
           done

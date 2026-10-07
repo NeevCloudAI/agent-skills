@@ -3,7 +3,7 @@ name: neev-sandbox-mcp
 description: Connect an agent — Claude Code, Cursor, Codex, Claude Desktop, or any MCP client — to the NeevCloud sandbox MCP server so it gets a sandbox as native tools, without the API key ever passing through chat, then work in that sandbox safely. Use when asked to set up, configure, or troubleshoot the sandbox MCP server, or when working in a NeevCloud sandbox over MCP.
 metadata:
   author: neevcloud
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # neev-sandbox-mcp
